@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking Signal Analysis - Capstone Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .meta-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .meta-info a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .meta-info a:hover {
+            text-decoration: underline;
+        }
+        section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #2980b9;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+            color: #e74c3c;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        .chart-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Capstone Report — Ranking Signal Analysis</h1>
+        <div class="meta-info"><strong>Author:</strong> Lei Andrei E. Domaoal</div>
+        <div class="meta-info"><strong>Lane:</strong> Ranking Signal Analysis</div>
+        <div class="meta-info"><strong>Repo:</strong> <a href="https://github.com/leiandrei/flyrank-ml-internship-starter" target="_blank">GitHub Repository</a></div>
+        <div class="meta-info"><strong>Date:</strong> September 15, 2026</div>
+    </header>
+
+    <section>
+        <h2>Abstract</h2>
+        <p>This paper investigated the predictability of Click-Through Rates (CTR) from macro discovery signals available to us to identify bad content. We analyzed an anonymized dataset of over 340k content records isolating pre-click discovery signals from downstream behavioral leakage. A static, client-grouped validation split was used to evaluate an XGBoost regression model against a baseline of Random Forest to approximate real-world generalization. Unseen client performance showed macro-signals as a strong directional support for content triaging, but not as a predictor of absolute CTR without the qualitative, page-level context. The output is a Content Action Playbook which prioritizes high-deficit pages for human-led meta-data optimization and SERP investigation.</p>
+    </section>
+
+    <section>
+        <h2>Introduction / Problem Statement</h2>
+        <p>This work supports decision making for Content Strategists and SEO Managers distributing editorial resources. The unit of analysis is a unique piece of content in a 90-day window. What comes out of this process is a ranked Content Action Playbook that links a mathematical "CTR Deficit" to specific triage actions (e.g., <code>REWRITE_META_TOP_RANK</code>). That's where machine learning works really well because search engagement metrics are non-linear. An ML regressor captures the complex interplay between rank, intent, and format better than static threshold rules. The cost of a bad call is time lost in editorial optimization of "ghost town" pages or acting on mathematical model hallucinations rather than real opportunities.</p>
+    </section>
+
+    <section>
+        <h2>Data</h2>
+        <p>Target leakage was strictly audited and removed to allow for an honest modeling environment. We deliberately excluded any of the post-click downstream behavioral metrics (<code>clicks_90d</code>, <code>sessions_90d</code>, <code>engagement_rate</code>, <code>scroll_rate</code>) from the feature set, as <code>ctr</code> is mathematically derived from any of those events. Pseudonymous identifiers (<code>content_id</code>, <code>client_id</code>) were used solely for output tracking and validation grouping, never as predictive features. We confirmed that the raw dataset (<code>content_refresh_anonymized.csv</code>) does not include client-identifying PII, private queries, or raw URLs.</p>
+    </section>
+
+    <section>
+        <h2>Methodology</h2>
+        <p>Using a standard Random Forest Regressor, we set up a baseline to predict the <code>ctr</code> target with clean, pre-click features. The exact features selected for the final model were <code>avg_position</code>, <code>search_volume</code>, <code>main_intent</code> (one-hot encoded), and <code>content_type</code> (one-hot encoded). The target proxy was <code>ctr</code> that is the continuous ratio of clicks to impressions over 90 days.</p>
+        <p>The models were validated using an 80/20 <code>GroupShuffleSplit</code> based on <code>client_id</code>. It would be dishonest to use a standard random split since it reveals domain authority of each particular client in the test set, artificially inflating the scores. With the help of groups based on <code>client_id</code>, the models had to predict unseen domains.</p>
+    </section>
+
+    <section>
+        <h2>Results</h2>
+        <p>For the honest grouped split, the Random Forest baseline had an R² score of -0.5327 and a Mean Absolute Error (MAE) of 0.543. The XGBoost capstone model beat the baseline and scored R² = -0.2332, MAE = 0.496. Tree-based gradient boosting is a great fit for this lane because search behavior heavily exhibits right-skewed tails and thus sequentially minimizes prediction errors on non-linear distributions.</p>
+        
+        <p><strong>Error Analysis:</strong> The negative R² score value in the honest split shows that the model overfits to the baseline traffic of the training clients. The error distribution plots show that the model often generates CTR values greater than 20% for the pages that rank deep into Position 30+.</p>
+
+        <!-- ADD YOUR CHART EXPORTS HERE -->
+        <div class="chart-container">
+            <img src="../outputs/action_distribution_chart.svg" alt="Triage Action Distribution Chart">
+            <p class="meta-info"><em>Figure 1: Distribution of recommended triage actions across the top priority queue.</em></p>
+        </div>
+    </section>
+
+    <section>
+        <h2>Limitations & Honest Framing</h2>
+        <p>Feature importance observation shows that the algorithm bases itself almost completely on the <code>avg_position</code> and <code>search_volume</code> factors for making the prediction, while using categorical intent and format only as secondary factors. The R² score less than zero on unseen clients is an extremely important and well-known negative outcome: it demonstrates that universal ranking signals are not able to predict the CTR of a new brand. This is because qualitative factors (like compelling Title Tag copywriting and brand affinity) determine actual clicks, and thus, the macro-signals should be used for directional decision-support, but not as an absolute predictor.</p>
+    </section>
+
+    <section>
+        <h2>Ranked Recommendations</h2>
+        <p>The output from all of these steps is a Content Action Playbook that functions as a directional tool, which highlights those pages that need urgent human evaluation due to having CTR problems. Strategists should implement codes such as <code>REWRITE_META_TOP_RANK</code> to catch the missed demand, and <code>INVESTIGATE_SERP_FEATURES</code> to check whether dynamic designs in Google are impacting CTRs.</p>
+        <p><strong>Safety Constraints:</strong> It should strictly be used as a decision-making tool. It should never be linked to any Generative AI pipeline to automatically rewrite meta-data, nor should Ghost Town pages be automatically deleted in Google Search Console.</p>
+    </section>
+
+    <section>
+        <h2>Reproducibility</h2>
+        <p>The full pipeline and project outputs are available under this repository link: <a href="https://github.com/leiandrei/flyrank-ml-internship-starter/tree/main/work/notebooks" target="_blank"><code>flyrank-ml-internship-starter/work/notebooks</code></a></p>
+        <ul>
+            <li><strong>Environment:</strong> <code>pip install -r requirements.txt</code>, <code>venv</code></li>
+            <li><strong>Randomization:</strong> All splitting and models used <code>random_state=42</code> initialization for reproducibility.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Acknowledgments & Data Credit</h2>
+        <p>Built on the FlyRank ML Internship dataset. Dataset sourced provided by: <a href="https://flyrank.ai" target="_blank"><code>https://flyrank.ai</code></a></p>
+    </section>
+
+</body>
+</html>
