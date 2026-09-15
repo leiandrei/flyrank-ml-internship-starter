@@ -51,7 +51,7 @@ The full pipeline and project outputs is available under this repository link: `
 
 ## 9. Acknowledgments & data credit
 
-Built on the FlyRank ML Internship dataset: `https://flyrank.ai`
+Built on the FlyRank ML Internship dataset. Dataset sourced provided by: `https://flyrank.ai`
 
 ---
 
